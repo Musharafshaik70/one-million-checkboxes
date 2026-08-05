@@ -3,16 +3,106 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>One MIllion Checkboxes</title>
+        <title>One Million Checkboxes</title>
         <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
             body {
-                background-color: black;
-                color: white;
+                background-color: #0d0d0d;
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 2rem 1rem;
+            }
+
+            h1 {
+                font-size: 2.25rem;
+                font-weight: 700;
+                margin-bottom: 2rem;
+                text-align: center;
+                letter-spacing: -0.025em;
+                background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+                -webkit-background-clip: text;
+                background-clip: border-box;
+                -webkit-text-fill-color: transparent;
+            }
+
+            #container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+                gap: 10px;
+                width: 100%;
+                max-width: 800px;
+                padding: 1.5rem;
+                background-color: #161618;
+                border: 1px solid #27272a;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            }
+
+            /* Modern native checkbox styling */
+            input[type="checkbox"] {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 24px;
+                height: 24px;
+                background-color: #27272a;
+                border: 1px solid #3f3f46;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.15s ease-in-out;
+                display: grid;
+                place-content: center;
+                outline: none;
+            }
+
+            input[type="checkbox"]:hover {
+                background-color: #3f3f46;
+                border-color: #52525b;
+                transform: scale(1.08);
+            }
+
+            input[type="checkbox"]:checked {
+                background-color: #6366f1;
+                border-color: #6366f1;
+            }
+
+            /* Custom checkmark icon inside the checkbox */
+            input[type="checkbox"]:checked::before {
+                content: "";
+                width: 10px;
+                height: 6px;
+                border-left: 2px solid #ffffff;
+                border-bottom: 2px solid #ffffff;
+                transform: rotate(-45deg) translate(1px, -1px);
+            }
+
+            input[type="checkbox"]:focus-visible {
+                box-shadow:
+                    0 0 0 2px #0d0d0d,
+                    0 0 0 4px #6366f1;
             }
         </style>
     </head>
     <body>
         <h1>One Million Checkboxes</h1>
-        <h2>good morning</h2>
+        <div id="container"></div>
+        <script>
+            const container = document.getElementById("container");
+            const CHECKBOX_COUNT = 100;
+
+            new Array(CHECKBOX_COUNT).fill(null).forEach((box, index) => {
+                const input = document.createElement("input");
+                input.type = "checkbox";
+                container.append(input);
+            });
+        </script>
     </body>
 </html>
