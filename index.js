@@ -18,10 +18,10 @@ async function main() {
 
     const httpServer = createServer(app);
 
-    //socket io handlers
     const io = new Server();
     io.attach(httpServer);
 
+    //socket io handlers
     io.on("connection", (socket) => {
         console.log("Socket Connected", { id: socket.id });
 

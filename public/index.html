@@ -95,6 +95,8 @@
             const socket = io();
             const container = document.getElementById("container");
             const CHECKBOX_COUNT = 100;
+
+            //client receives data from server and updates the checkbox fields
             socket.on("server:checkbox:changed", (data) => {
                 console.log("Socket Server Event", data);
                 const { index, checked } = data;
@@ -102,6 +104,7 @@
                 if (input) input.checked = checked;
             });
 
+            //When a new client connects, the server sends the current state so the client is synchronized with everyone else.
             window.addEventListener("load", async () => {
                 const response = await fetch("/checkboxes", { method: "GET" });
                 const data = await response.json();
@@ -122,6 +125,7 @@
                 }
             });
 
+            // an array of checkboxes created and client informs server that checkbox at this specific index is clicked.
             // new Array(CHECKBOX_COUNT).fill(null).forEach((checkbox, index) => {
             //     const input = document.createElement("input");
             //     input.type = "checkbox";
