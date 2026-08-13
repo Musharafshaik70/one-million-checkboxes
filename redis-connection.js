@@ -7,5 +7,5 @@ function createRedisConnection() {
     });
 }
 
-const publisher = createRedisConnection();
-const subscriber = createRedisConnection();
+export const publisher = createRedisConnection();
+export const subscriber = createRedisConnection();
