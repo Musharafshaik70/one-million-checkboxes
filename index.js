@@ -7,8 +7,8 @@ import { Server } from "socket.io";
 import { publisher, subscriber, redis } from "./redis-connection.js";
 
 const CHECKBOX_COUNT = 100;
-
 const CHECKBOX_STATE_KEY = "checkbox-state";
+const ratelimitingHashmap = new Map();
 
 async function main() {
     const PORT = process.env.PORT ?? 8000;
@@ -34,10 +34,23 @@ async function main() {
     io.on("connection", (socket) => {
         console.log("Socket Connected", { id: socket.id });
 
+        //when client sends you message, we do : 1, 2, 3
         socket.on("client:checkbox:changed", async (data) => {
             console.log(`[Socket:${socket.id}]:client:checkbox:change`, data);
-            const { index, checked } = data;
 
+            // 1)apply rate-limiting, to prevent client from "2" and "3"
+            const loadedTime = ratelimitingHashmap.get(socket.id);
+            if (loadedTime) {
+                const elapsedTime = Date.now() - loadedTime;
+                if (elapsedTime < 5 * 1000) {
+                    socket.emit("server-error", { error: "Please wait 5 sec" });
+                    return;
+                }
+            }
+            ratelimitingHashmap.set(socket.id, Date.now());
+
+            // 2)update the state in redis
+            const { index, checked } = data;
             const existingState = await redis.get(CHECKBOX_STATE_KEY);
             if (existingState) {
                 const remoteData = await JSON.parse(existingState);
@@ -47,6 +60,7 @@ async function main() {
                 await redis.set(CHECKBOX_STATE_KEY, JSON.stringify(new Array(CHECKBOX_COUNT).fill(false)));
             }
 
+            // 3) publish the changes to redis channel
             await publisher.publish("internal-server:checkbox:changed", JSON.stringify(data));
         });
     });

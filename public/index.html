@@ -43,6 +43,39 @@
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             }
 
+            /* Toast Error Notification Styling */
+            #toast-container {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                z-index: 1000;
+            }
+
+            .toast {
+                background-color: #1c1917;
+                color: #f87171;
+                border: 1px solid #7f1d1d;
+                padding: 0.85rem 1.25rem;
+                border-radius: 8px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+                font-size: 0.9rem;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                opacity: 0;
+                transform: translateY(10px);
+                transition: all 0.25s ease-in-out;
+            }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
             /* Modern native checkbox styling */
             input[type="checkbox"] {
                 appearance: none;
@@ -90,13 +123,40 @@
     <body>
         <h1>One Million Checkboxes</h1>
         <div id="container"></div>
+
+        <!-- Notification container -->
+        <div id="toast-container"></div>
+
         <script src="/socket.io/socket.io.js"></script>
         <script>
             const socket = io();
             const container = document.getElementById("container");
-            const CHECKBOX_COUNT = 100;
+            const toastContainer = document.getElementById("toast-container");
 
-            //client receives data from server and updates the checkbox fields
+            // Utility function to trigger error toasts
+            function showErrorToast(message) {
+                const toast = document.createElement("div");
+                toast.className = "toast";
+                toast.innerHTML = `⚠️ ${message}`;
+
+                toastContainer.appendChild(toast);
+
+                //  smooth fade-in
+                setTimeout(() => toast.classList.add("show"), 10);
+
+                setTimeout(() => {
+                    toast.classList.remove("show");
+                    toast.addEventListener("transitionend", () => toast.remove());
+                }, 3500);
+            }
+
+            // when client receives error from server (e.g. rate limiting)
+            socket.on("server-error", (data) => {
+                const errorMsg = typeof data === "string" ? data : data.error || "Action rate limited!";
+                showErrorToast(errorMsg);
+            });
+
+            // client receives data from server and updates the checkbox fields
             socket.on("server:checkbox:changed", (data) => {
                 console.log("Socket Server Event", data);
                 const { index, checked } = data;
@@ -104,40 +164,39 @@
                 if (input) input.checked = checked;
             });
 
-            //When a new client connects, the server sends the current state so the client is synchronized with everyone else.
-            window.addEventListener("load", async () => {
-                const response = await fetch("/checkboxes", { method: "GET" });
-                const data = await response.json();
-                if (data && data.checkboxes) {
-                    data.checkboxes.forEach((serverValue, index) => {
-                        const input = document.createElement("input");
-                        input.type = "checkbox";
-                        input.id = `checkbox-${index}`;
-                        input.checked = serverValue;
-                        input.addEventListener("change", (event) => {
-                            const checked = event.target.checked;
-                            console.log("Checkbox changed", { index, checked });
-                            socket.emit("client:checkbox:changed", { index, checked });
+            async function fetchStateFromServer() {
+                try {
+                    const response = await fetch("/checkboxes", { method: "GET" });
+                    const data = await response.json();
+                    if (data && data.checkboxes) {
+                        //when you get data, only then you rerender
+                        container.replaceChildren();
+                        data.checkboxes.forEach((serverValue, index) => {
+                            const input = document.createElement("input");
+                            input.type = "checkbox";
+                            input.id = `checkbox-${index}`;
+                            input.checked = serverValue;
+
+                            input.addEventListener("change", (event) => {
+                                const checked = event.target.checked;
+                                console.log("Checkbox changed", { index, checked });
+                                socket.emit("client:checkbox:changed", { index, checked });
+                                //rerender DOM to update client state due to rate limiting.
+                                fetchStateFromServer();
+                            });
+
+                            container.append(input);
                         });
-
-                        container.append(input);
-                    });
+                    }
+                } catch (err) {
+                    showErrorToast("Failed to load initial state from server.");
                 }
+            }
+
+            // When a new client connects, load initial state
+            window.addEventListener("load", async () => {
+                fetchStateFromServer();
             });
-
-            // an array of checkboxes created and client informs server that checkbox at this specific index is clicked.
-            // new Array(CHECKBOX_COUNT).fill(null).forEach((checkbox, index) => {
-            //     const input = document.createElement("input");
-            //     input.type = "checkbox";
-            //     input.id = `checkbox-${index}`;
-            //     input.addEventListener("change", (event) => {
-            //         const checked = event.target.checked;
-            //         console.log("Checkbox changed", { index, checked });
-            //         socket.emit("client:checkbox:changed", { index, checked });
-            //     });
-
-            //     container.append(input);
-            // });
         </script>
     </body>
 </html>
